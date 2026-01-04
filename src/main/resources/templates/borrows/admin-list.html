@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>All Borrow Records - Library Management System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+</head>
+<body>
+    <div th:replace="~{layout/navbar :: navbar}"></div>
+    
+    <div class="container mt-4">
+        <h2><i class="bi bi-list-check"></i> All Borrow Records</h2>
+        <p class="text-muted">Complete borrowing history for all users</p>
+        
+        <div class="card mt-3">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-table"></i> Borrow History</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover table-sm">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>ID</th>
+                                <th>User Info</th>
+                                <th>Book Details</th>
+                                <th>Borrow Date</th>
+                                <th>Return Deadline</th>
+                                <th>Actual Return</th>
+                                <th>Days Borrowed</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="record : ${borrowRecords}">
+                                <td th:text="${record.id}"></td>
+                                <td>
+                                    <div>
+                                        <i class="bi bi-person-circle"></i>
+                                        <strong th:text="${record.user.username}"></strong>
+                                    </div>
+                                    <small class="text-muted" th:text="${record.user.fullName}"></small>
+                                    <br>
+                                    <small class="text-muted">
+                                        <i class="bi bi-envelope"></i>
+                                        <span th:text="${record.user.email}"></span>
+                                    </small>
+                                </td>
+                                <td>
+                                    <div>
+                                        <strong th:text="${record.book.title}"></strong>
+                                    </div>
+                                    <small class="text-muted">
+                                        by <span th:text="${record.book.author}"></span>
+                                    </small>
+                                    <br>
+                                    <small class="text-muted">
+                                        ISBN: <span th:text="${record.book.isbn}"></span>
+                                    </small>
+                                </td>
+                                <td th:text="${#temporals.format(record.borrowDate, 'MMM dd, yyyy')}"></td>
+                                <td>
+                                    <span th:text="${#temporals.format(record.returnDeadline, 'MMM dd, yyyy')}"></span>
+                                    <br>
+                                    <small th:if="${record.status == 'BORROWED' || record.status == 'OVERDUE'}"
+                                           th:with="daysLeft=${T(java.time.temporal.ChronoUnit).DAYS.between(T(java.time.LocalDate).now(), record.returnDeadline)}"
+                                           th:classappend="${daysLeft < 0 ? 'text-danger' : (daysLeft <= 3 ? 'text-warning' : 'text-success')}">
+                                        <span th:if="${daysLeft >= 0}" th:text="${daysLeft + ' days left'}"></span>
+                                        <span th:if="${daysLeft < 0}" th:text="${Math.abs(daysLeft) + ' days overdue'}"></span>
+                                    </small>
+                                </td>
+                                <td>
+                                    <span th:if="${record.actualReturnDate != null}" 
+                                          th:text="${#temporals.format(record.actualReturnDate, 'MMM dd, yyyy')}"></span>
+                                    <span th:if="${record.actualReturnDate == null}" class="text-muted">Not returned</span>
+                                </td>
+                                <td>
+                                    <span th:if="${record.actualReturnDate != null}"
+                                          th:with="daysBorrowed=${T(java.time.temporal.ChronoUnit).DAYS.between(record.borrowDate, record.actualReturnDate)}"
+                                          th:text="${daysBorrowed + ' days'}"></span>
+                                    <span th:if="${record.actualReturnDate == null}"
+                                          th:with="daysBorrowed=${T(java.time.temporal.ChronoUnit).DAYS.between(record.borrowDate, T(java.time.LocalDate).now())}"
+                                          th:text="${daysBorrowed + ' days'}"></span>
+                                </td>
+                                <td>
+                                    <span th:if="${record.status == 'BORROWED'}" 
+                                          class="badge bg-primary">
+                                        <i class="bi bi-book"></i> Borrowed
+                                    </span>
+                                    <span th:if="${record.status == 'RETURNED'}" 
+                                          class="badge bg-success">
+                                        <i class="bi bi-check-circle"></i> Returned
+                                    </span>
+                                    <span th:if="${record.status == 'RETURNED_LATE'}" 
+                                          class="badge bg-warning">
+                                        <i class="bi bi-exclamation-triangle"></i> Returned Late
+                                    </span>
+                                    <span th:if="${record.status == 'OVERDUE'}" 
+                                          class="badge bg-danger">
+                                        <i class="bi bi-alarm"></i> Overdue
+                                    </span>
+                                </td>
+                                <td>
+                                    <a th:href="@{/admin/users/borrow-history/{userId}(userId=${record.user.id})}"
+                                       class="btn btn-sm btn-info" title="View user's full history">
+                                        <i class="bi bi-clock-history"></i> History
+                                    </a>
+                                </td>
+                            </tr>
+                            <tr th:if="${#lists.isEmpty(borrowRecords)}">
+                                <td colspan="9" class="text-center text-muted">No borrow records found.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mt-4">
+            <div class="col-md-3">
+                <div class="card text-center border-primary">
+                    <div class="card-body">
+                        <h5 class="card-title text-primary" 
+                            th:text="${#lists.size(#lists.select(borrowRecords, status == 'BORROWED'))}">0</h5>
+                        <p class="card-text">
+                            <i class="bi bi-book"></i> Currently Borrowed
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center border-danger">
+                    <div class="card-body">
+                        <h5 class="card-title text-danger" 
+                            th:text="${#lists.size(#lists.select(borrowRecords, status == 'OVERDUE'))}">0</h5>
+                        <p class="card-text">
+                            <i class="bi bi-alarm"></i> Overdue Books
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center border-success">
+                    <div class="card-body">
+                        <h5 class="card-title text-success" 
+                            th:text="${#lists.size(#lists.select(borrowRecords, status == 'RETURNED'))}">0</h5>
+                        <p class="card-text">
+                            <i class="bi bi-check-circle"></i> Returned On Time
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center border-warning">
+                    <div class="card-body">
+                        <h5 class="card-title text-warning" 
+                            th:text="${#lists.size(#lists.select(borrowRecords, status == 'RETURNED_LATE'))}">0</h5>
+                        <p class="card-text">
+                            <i class="bi bi-exclamation-triangle"></i> Returned Late
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
