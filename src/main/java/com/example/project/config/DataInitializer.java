@@ -1,4 +1,4 @@
-package com.library.config;
+package com.example.project.config;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
