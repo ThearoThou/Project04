@@ -46,6 +46,14 @@ public class AuthController {
         
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         
+        String email = user.getEmail() == null ? "" : user.getEmail().toLowerCase().trim();
+        user.setEmail(email);
+        
+        if (email.contains("@admin.library.com")) {
+            redirectAttributes.addFlashAttribute("error", "This email is not allowed for registration");
+            return "redirect:/register";
+        }
+
         Role memberRole = roleRepository.findByName("MEMBER")
             .orElseThrow(() -> new RuntimeException("Member role not found"));
         user.getRoles().add(memberRole);
