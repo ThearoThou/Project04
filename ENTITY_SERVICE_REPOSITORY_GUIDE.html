@@ -1,0 +1,878 @@
+<h1 id="entity-service-repository-architecture---detailed-guide">Entity,
+Service, Repository Architecture - Detailed Guide</h1>
+<h2 id="overview">Overview</h2>
+<p>This document provides a comprehensive explanation of how Entity,
+Service, and Repository layers work together in the Library Management
+System, including validation mechanisms.</p>
+<hr />
+<h2 id="part-1-entity-layer">PART 1: ENTITY LAYER</h2>
+<h3 id="what-is-an-entity">What is an Entity?</h3>
+<p>An <strong>Entity</strong> is a Java class that represents a table in
+the database. It maps to relational database tables and holds data with
+business meaning. Each entity represents a core concept in the
+system.</p>
+<h3 id="entities-in-your-project">Entities in Your Project</h3>
+<h4 id="user-entity---represents-a-library-member">1. <strong>User
+Entity</strong> - Represents a library member</h4>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="at">@Entity</span>                              <span class="co">// Marks this class as a JPA entity</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="at">@Table</span><span class="op">(</span>name <span class="op">=</span> <span class="st">&quot;users&quot;</span><span class="op">)</span>               <span class="co">// Maps to &quot;users&quot; table</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="at">@Data</span>                                <span class="co">// Lombok: auto-generates getters/setters</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="at">@NoArgsConstructor</span>                   <span class="co">// Lombok: generates no-arg constructor</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">class</span> User <span class="op">{</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">@Id</span>                              <span class="co">// Primary key</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">@GeneratedValue</span><span class="op">(</span>strategy <span class="op">=</span> GenerationType<span class="op">.</span><span class="fu">IDENTITY</span><span class="op">)</span>  <span class="co">// Auto-increment ID</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="bu">Long</span> id<span class="op">;</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">@Column</span><span class="op">(</span>name <span class="op">=</span> <span class="st">&quot;username&quot;</span><span class="op">,</span> length <span class="op">=</span> <span class="dv">50</span><span class="op">,</span> unique <span class="op">=</span> <span class="kw">true</span><span class="op">,</span> nullable <span class="op">=</span> <span class="kw">false</span><span class="op">)</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Constraints:</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>    <span class="co">// - unique = true: No two users can have same username (database constraint)</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>    <span class="co">// - nullable = false: Username is required (NOT NULL)</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>    <span class="co">// - length = 50: Max 50 characters</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="bu">String</span> username<span class="op">;</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">@Column</span><span class="op">(</span>name <span class="op">=</span> <span class="st">&quot;password&quot;</span><span class="op">,</span> length <span class="op">=</span> <span class="dv">255</span><span class="op">,</span> nullable <span class="op">=</span> <span class="kw">false</span><span class="op">)</span></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Password stored as encrypted string</span></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="bu">String</span> password<span class="op">;</span></span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>    <span class="at">@Column</span><span class="op">(</span>name <span class="op">=</span> <span class="st">&quot;full_name&quot;</span><span class="op">,</span> length <span class="op">=</span> <span class="dv">100</span><span class="op">,</span> nullable <span class="op">=</span> <span class="kw">false</span><span class="op">)</span></span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="bu">String</span> fullName<span class="op">;</span></span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>    <span class="at">@Column</span><span class="op">(</span>name <span class="op">=</span> <span class="st">&quot;email&quot;</span><span class="op">,</span> length <span class="op">=</span> <span class="dv">100</span><span class="op">,</span> unique <span class="op">=</span> <span class="kw">true</span><span class="op">,</span> nullable <span class="op">=</span> <span class="kw">false</span><span class="op">)</span></span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Email must be unique and required</span></span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="bu">String</span> email<span class="op">;</span></span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a>    <span class="at">@ManyToMany</span><span class="op">(</span>fetch <span class="op">=</span> FetchType<span class="op">.</span><span class="fu">EAGER</span><span class="op">)</span></span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a>    <span class="co">// A User can have MULTIPLE roles (e.g., both ADMIN and USER)</span></span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a>    <span class="co">// A Role can be assigned to MULTIPLE users</span></span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a>    <span class="co">// fetch = FetchType.EAGER: Load roles immediately with user</span></span>
+<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a>    <span class="at">@JoinTable</span><span class="op">(</span></span>
+<span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a>        name <span class="op">=</span> <span class="st">&quot;user_roles&quot;</span><span class="op">,</span>                    <span class="co">// Junction table name</span></span>
+<span id="cb1-36"><a href="#cb1-36" aria-hidden="true" tabindex="-1"></a>        joinColumns <span class="op">=</span> <span class="at">@JoinColumn</span><span class="op">(</span>name <span class="op">=</span> <span class="st">&quot;user_id&quot;</span><span class="op">),</span></span>
+<span id="cb1-37"><a href="#cb1-37" aria-hidden="true" tabindex="-1"></a>        inverseJoinColumns <span class="op">=</span> <span class="at">@JoinColumn</span><span class="op">(</span>name <span class="op">=</span> <span class="st">&quot;role_id&quot;</span><span class="op">)</span></span>
+<span id="cb1-38"><a href="#cb1-38" aria-hidden="true" tabindex="-1"></a>    <span class="op">)</span></span>
+<span id="cb1-39"><a href="#cb1-39" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Junction table structure:</span></span>
+<span id="cb1-40"><a href="#cb1-40" aria-hidden="true" tabindex="-1"></a>    <span class="co">// user_roles (user_id, role_id) - links users to their roles</span></span>
+<span id="cb1-41"><a href="#cb1-41" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="bu">Set</span><span class="op">&lt;</span><span class="bu">Role</span><span class="op">&gt;</span> roles <span class="op">=</span> <span class="kw">new</span> <span class="bu">HashSet</span><span class="op">&lt;&gt;();</span></span>
+<span id="cb1-42"><a href="#cb1-42" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong>Database Table Created:</strong></p>
+<pre><code>users (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    username VARCHAR(50) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    full_name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL
+)</code></pre>
+<hr />
+<h4 id="role-entity---represents-user-rolespermissions">2. <strong>Role
+Entity</strong> - Represents user roles/permissions</h4>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="at">@Entity</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="at">@Table</span><span class="op">(</span>name <span class="op">=</span> <span class="st">&quot;roles&quot;</span><span class="op">)</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="at">@Data</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="at">@NoArgsConstructor</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">class</span> <span class="bu">Role</span> <span class="op">{</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">@Id</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">@GeneratedValue</span><span class="op">(</span>strategy <span class="op">=</span> GenerationType<span class="op">.</span><span class="fu">IDENTITY</span><span class="op">)</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="bu">Long</span> id<span class="op">;</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">@Column</span><span class="op">(</span>name <span class="op">=</span> <span class="st">&quot;name&quot;</span><span class="op">,</span> length <span class="op">=</span> <span class="dv">50</span><span class="op">,</span> unique <span class="op">=</span> <span class="kw">true</span><span class="op">,</span> nullable <span class="op">=</span> <span class="kw">false</span><span class="op">)</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Role name must be unique: Can only have one &quot;ADMIN&quot; role, etc.</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="bu">String</span> name<span class="op">;</span>  <span class="co">// Examples: &quot;ADMIN&quot;, &quot;USER&quot;</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong>Database Table:</strong></p>
+<pre><code>roles (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(50) UNIQUE NOT NULL
+)
+
+-- Example data:
+-- 1, ADMIN
+-- 2, USER</code></pre>
+<p><strong>Junction Table for Many-to-Many:</strong></p>
+<pre><code>user_roles (
+    user_id BIGINT,
+    role_id BIGINT,
+    PRIMARY KEY (user_id, role_id),
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (role_id) REFERENCES roles(id)
+)
+
+-- Example:
+-- 1, 1  (User 1 has role 1 = ADMIN)
+-- 1, 2  (User 1 also has role 2 = USER)
+-- 2, 2  (User 2 has role 2 = USER)</code></pre>
+<hr />
+<h4 id="book-entity---represents-a-library-book">3. <strong>Book
+Entity</strong> - Represents a library book</h4>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="at">@Entity</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="at">@Table</span><span class="op">(</span>name <span class="op">=</span> <span class="st">&quot;books&quot;</span><span class="op">)</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="at">@Data</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="at">@NoArgsConstructor</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">class</span> <span class="bu">Book</span> <span class="op">{</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">@Id</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">@GeneratedValue</span><span class="op">(</span>strategy <span class="op">=</span> GenerationType<span class="op">.</span><span class="fu">IDENTITY</span><span class="op">)</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="bu">Long</span> id<span class="op">;</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">@Column</span><span class="op">(</span>nullable <span class="op">=</span> <span class="kw">false</span><span class="op">)</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="bu">String</span> title<span class="op">;</span>        <span class="co">// Book title (required)</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">@Column</span><span class="op">(</span>nullable <span class="op">=</span> <span class="kw">false</span><span class="op">)</span></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="bu">String</span> author<span class="op">;</span>       <span class="co">// Author name (required)</span></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">@Column</span><span class="op">(</span>unique <span class="op">=</span> <span class="kw">true</span><span class="op">,</span> nullable <span class="op">=</span> <span class="kw">false</span><span class="op">)</span></span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="bu">String</span> isbn<span class="op">;</span>         <span class="co">// Unique ISBN code (required, unique)</span></span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a>    <span class="at">@Column</span><span class="op">(</span>nullable <span class="op">=</span> <span class="kw">false</span><span class="op">)</span></span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="bu">String</span> genre<span class="op">;</span>        <span class="co">// Book genre/category (required)</span></span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a>    <span class="at">@Column</span><span class="op">(</span>nullable <span class="op">=</span> <span class="kw">false</span><span class="op">)</span></span>
+<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="bu">Integer</span> quantity<span class="op">;</span>    <span class="co">// Number of copies available (required)</span></span>
+<span id="cb6-25"><a href="#cb6-25" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb6-26"><a href="#cb6-26" aria-hidden="true" tabindex="-1"></a>    <span class="at">@Column</span><span class="op">(</span>nullable <span class="op">=</span> <span class="kw">false</span><span class="op">)</span></span>
+<span id="cb6-27"><a href="#cb6-27" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="bu">Boolean</span> isAvailable<span class="op">;</span> <span class="co">// Can this book be borrowed? (required, default true)</span></span>
+<span id="cb6-28"><a href="#cb6-28" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong>Database Table:</strong></p>
+<pre><code>books (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    title VARCHAR(255) NOT NULL,
+    author VARCHAR(255) NOT NULL,
+    isbn VARCHAR(255) UNIQUE NOT NULL,
+    genre VARCHAR(255) NOT NULL,
+    quantity INT NOT NULL,
+    is_available BOOLEAN NOT NULL
+)</code></pre>
+<hr />
+<h4 id="borrowrecord-entity---represents-a-borrowing-transaction">4.
+<strong>BorrowRecord Entity</strong> - Represents a borrowing
+transaction</h4>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="at">@Entity</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="at">@Table</span><span class="op">(</span>name <span class="op">=</span> <span class="st">&quot;borrow_records&quot;</span><span class="op">)</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="at">@Data</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="at">@NoArgsConstructor</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">class</span> BorrowRecord <span class="op">{</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">@Id</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">@GeneratedValue</span><span class="op">(</span>strategy <span class="op">=</span> GenerationType<span class="op">.</span><span class="fu">IDENTITY</span><span class="op">)</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="bu">Long</span> id<span class="op">;</span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">@ManyToOne</span><span class="op">(</span>fetch <span class="op">=</span> FetchType<span class="op">.</span><span class="fu">EAGER</span><span class="op">)</span></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Many BorrowRecords → One User</span></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>    <span class="co">// A user can borrow multiple books (multiple records)</span></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Each borrow record belongs to ONE user</span></span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">@JoinColumn</span><span class="op">(</span>name <span class="op">=</span> <span class="st">&quot;user_id&quot;</span><span class="op">,</span> nullable <span class="op">=</span> <span class="kw">false</span><span class="op">)</span></span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Foreign key to users table</span></span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> User user<span class="op">;</span></span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a>    <span class="at">@ManyToOne</span><span class="op">(</span>fetch <span class="op">=</span> FetchType<span class="op">.</span><span class="fu">EAGER</span><span class="op">)</span></span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Many BorrowRecords → One Book</span></span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a>    <span class="co">// A book can be referenced in multiple borrow records (borrowed multiple times)</span></span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Each borrow record references ONE book</span></span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a>    <span class="at">@JoinColumn</span><span class="op">(</span>name <span class="op">=</span> <span class="st">&quot;book_id&quot;</span><span class="op">,</span> nullable <span class="op">=</span> <span class="kw">false</span><span class="op">)</span></span>
+<span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Foreign key to books table</span></span>
+<span id="cb8-27"><a href="#cb8-27" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="bu">Book</span> book<span class="op">;</span></span>
+<span id="cb8-28"><a href="#cb8-28" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb8-29"><a href="#cb8-29" aria-hidden="true" tabindex="-1"></a>    <span class="at">@Column</span><span class="op">(</span>name <span class="op">=</span> <span class="st">&quot;borrow_date&quot;</span><span class="op">,</span> nullable <span class="op">=</span> <span class="kw">false</span><span class="op">)</span></span>
+<span id="cb8-30"><a href="#cb8-30" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> LocalDate borrowDate<span class="op">;</span>  <span class="co">// When was it borrowed? (required)</span></span>
+<span id="cb8-31"><a href="#cb8-31" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb8-32"><a href="#cb8-32" aria-hidden="true" tabindex="-1"></a>    <span class="at">@Column</span><span class="op">(</span>name <span class="op">=</span> <span class="st">&quot;return_deadline&quot;</span><span class="op">,</span> nullable <span class="op">=</span> <span class="kw">false</span><span class="op">)</span></span>
+<span id="cb8-33"><a href="#cb8-33" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> LocalDate returnDeadline<span class="op">;</span>  <span class="co">// By when should it be returned? (required)</span></span>
+<span id="cb8-34"><a href="#cb8-34" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb8-35"><a href="#cb8-35" aria-hidden="true" tabindex="-1"></a>    <span class="at">@Column</span><span class="op">(</span>name <span class="op">=</span> <span class="st">&quot;actual_return_date&quot;</span><span class="op">)</span></span>
+<span id="cb8-36"><a href="#cb8-36" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> LocalDate actualReturnDate<span class="op">;</span>  <span class="co">// When was it actually returned? (optional)</span></span>
+<span id="cb8-37"><a href="#cb8-37" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb8-38"><a href="#cb8-38" aria-hidden="true" tabindex="-1"></a>    <span class="at">@Column</span><span class="op">(</span>name <span class="op">=</span> <span class="st">&quot;status&quot;</span><span class="op">,</span> length <span class="op">=</span> <span class="dv">20</span><span class="op">,</span> nullable <span class="op">=</span> <span class="kw">false</span><span class="op">)</span></span>
+<span id="cb8-39"><a href="#cb8-39" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="bu">String</span> status<span class="op">;</span>  <span class="co">// BORROWED, RETURNED, OVERDUE, RETURNED_LATE (required)</span></span>
+<span id="cb8-40"><a href="#cb8-40" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong>Database Table:</strong></p>
+<pre><code>borrow_records (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    user_id BIGINT NOT NULL,
+    book_id BIGINT NOT NULL,
+    borrow_date DATE NOT NULL,
+    return_deadline DATE NOT NULL,
+    actual_return_date DATE,
+    status VARCHAR(20) NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (book_id) REFERENCES books(id)
+)</code></pre>
+<hr />
+<h2 id="part-2-repository-layer">PART 2: REPOSITORY LAYER</h2>
+<h3 id="what-is-a-repository">What is a Repository?</h3>
+<p>A <strong>Repository</strong> is an interface that handles database
+operations (CRUD - Create, Read, Update, Delete). It abstracts the
+database layer, so services don’t need to know SQL or database
+details.</p>
+<p><strong>Spring Data JPA</strong> automatically provides
+implementations for these interfaces.</p>
+<h3 id="repositories-in-your-project">Repositories in Your Project</h3>
+<h4 id="userrepository---data-access-for-users">1.
+<strong>UserRepository</strong> - Data access for Users</h4>
+<div class="sourceCode" id="cb10"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="at">@Repository</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">interface</span> UserRepository <span class="kw">extends</span> JpaRepository<span class="op">&lt;</span>User<span class="op">,</span> <span class="bu">Long</span><span class="op">&gt;</span> <span class="op">{</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// JpaRepository provides:</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    <span class="co">// - save(User): Insert or update</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">// - findById(Long): Get user by ID</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>    <span class="co">// - findAll(): Get all users</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">// - delete(User): Delete user</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>    <span class="co">// - deleteById(Long): Delete by ID</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>    <span class="co">// - count(): How many users exist</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Custom queries specific to User:</span></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>    Optional<span class="op">&lt;</span>User<span class="op">&gt;</span> <span class="fu">findByUsername</span><span class="op">(</span><span class="bu">String</span> username<span class="op">);</span></span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Finds user by username</span></span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Optional: Could be empty if user doesn&#39;t exist</span></span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Usage: repo.findByUsername(&quot;john&quot;).orElseThrow(...)</span></span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a>    <span class="dt">boolean</span> <span class="fu">existsByUsername</span><span class="op">(</span><span class="bu">String</span> username<span class="op">);</span></span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Check if username already exists (for validation)</span></span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Returns: true if exists, false otherwise</span></span>
+<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a>    <span class="dt">boolean</span> <span class="fu">existsByEmail</span><span class="op">(</span><span class="bu">String</span> email<span class="op">);</span></span>
+<span id="cb10-23"><a href="#cb10-23" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Check if email already exists (for validation)</span></span>
+<span id="cb10-24"><a href="#cb10-24" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong>How Spring Data JPA generates these:</strong> - Method name:
+<code>findByUsername</code> - <code>find</code> = SELECT query -
+<code>By</code> = WHERE clause - <code>Username</code> = field to match
+- Spring JPA generates:
+<code>SELECT * FROM users WHERE username = ?</code></p>
+<hr />
+<h4 id="bookrepository---data-access-for-books">2.
+<strong>BookRepository</strong> - Data access for Books</h4>
+<div class="sourceCode" id="cb11"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="at">@Repository</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">interface</span> BookRepository <span class="kw">extends</span> JpaRepository<span class="op">&lt;</span><span class="bu">Book</span><span class="op">,</span> <span class="bu">Long</span><span class="op">&gt;</span> <span class="op">{</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Inherited from JpaRepository:</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>    <span class="co">// - save(Book), findById(Long), findAll(), delete(), etc.</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Custom queries:</span></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>    Optional<span class="op">&lt;</span><span class="bu">Book</span><span class="op">&gt;</span> <span class="fu">findByIsbn</span><span class="op">(</span><span class="bu">String</span> isbn<span class="op">);</span></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Find book by ISBN (book identifier)</span></span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>    <span class="co">// SELECT * FROM books WHERE isbn = ?</span></span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>    <span class="bu">List</span><span class="op">&lt;</span><span class="bu">Book</span><span class="op">&gt;</span> <span class="fu">findByIsAvailable</span><span class="op">(</span><span class="bu">Boolean</span> isAvailable<span class="op">);</span></span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Find all available (or unavailable) books</span></span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a>    <span class="co">// SELECT * FROM books WHERE is_available = true</span></span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a>    <span class="bu">List</span><span class="op">&lt;</span><span class="bu">Book</span><span class="op">&gt;</span> <span class="fu">findByTitleContainingIgnoreCaseOrAuthorContainingIgnoreCase</span><span class="op">(</span></span>
+<span id="cb11-17"><a href="#cb11-17" aria-hidden="true" tabindex="-1"></a>        <span class="bu">String</span> title<span class="op">,</span> <span class="bu">String</span> author<span class="op">);</span></span>
+<span id="cb11-18"><a href="#cb11-18" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Search books by title OR author (case-insensitive)</span></span>
+<span id="cb11-19"><a href="#cb11-19" aria-hidden="true" tabindex="-1"></a>    <span class="co">// SELECT * FROM books </span></span>
+<span id="cb11-20"><a href="#cb11-20" aria-hidden="true" tabindex="-1"></a>    <span class="co">// WHERE LOWER(title) LIKE CONCAT(&#39;%&#39;, ?, &#39;%&#39;)</span></span>
+<span id="cb11-21"><a href="#cb11-21" aria-hidden="true" tabindex="-1"></a>    <span class="co">// OR LOWER(author) LIKE CONCAT(&#39;%&#39;, ?, &#39;%&#39;)</span></span>
+<span id="cb11-22"><a href="#cb11-22" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<hr />
+<h4 id="borrowrepository---data-access-for-borrow-records">3.
+<strong>BorrowRepository</strong> - Data access for Borrow Records</h4>
+<div class="sourceCode" id="cb12"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="at">@Repository</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">interface</span> BorrowRepository <span class="kw">extends</span> JpaRepository<span class="op">&lt;</span>BorrowRecord<span class="op">,</span> <span class="bu">Long</span><span class="op">&gt;</span> <span class="op">{</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Inherited: save(), findById(), findAll(), delete(), etc.</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Custom queries:</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>    <span class="bu">List</span><span class="op">&lt;</span>BorrowRecord<span class="op">&gt;</span> <span class="fu">findByUser</span><span class="op">(</span>User user<span class="op">);</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Get all borrow records for a specific user</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>    <span class="co">// SELECT * FROM borrow_records WHERE user_id = ?</span></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>    <span class="bu">List</span><span class="op">&lt;</span>BorrowRecord<span class="op">&gt;</span> <span class="fu">findByStatus</span><span class="op">(</span><span class="bu">String</span> status<span class="op">);</span></span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Find records with specific status (BORROWED, OVERDUE, etc.)</span></span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>    <span class="co">// SELECT * FROM borrow_records WHERE status = ?</span></span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>    <span class="bu">List</span><span class="op">&lt;</span>BorrowRecord<span class="op">&gt;</span> <span class="fu">findByUserOrderByBorrowDateDesc</span><span class="op">(</span>User user<span class="op">);</span></span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Get user&#39;s borrow history, sorted by date (newest first)</span></span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>    <span class="co">// SELECT * FROM borrow_records </span></span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>    <span class="co">// WHERE user_id = ? </span></span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a>    <span class="co">// ORDER BY borrow_date DESC</span></span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<hr />
+<h4 id="rolerepository---data-access-for-roles">4.
+<strong>RoleRepository</strong> - Data access for Roles</h4>
+<div class="sourceCode" id="cb13"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="at">@Repository</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">interface</span> RoleRepository <span class="kw">extends</span> JpaRepository<span class="op">&lt;</span><span class="bu">Role</span><span class="op">,</span> <span class="bu">Long</span><span class="op">&gt;</span> <span class="op">{</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Inherited: save(), findById(), findAll(), delete(), etc.</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>    Optional<span class="op">&lt;</span><span class="bu">Role</span><span class="op">&gt;</span> <span class="fu">findByName</span><span class="op">(</span><span class="bu">String</span> name<span class="op">);</span></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Find role by name (ADMIN, USER, etc.)</span></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">// SELECT * FROM roles WHERE name = ?</span></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<hr />
+<h2 id="part-3-service-layer">PART 3: SERVICE LAYER</h2>
+<h3 id="what-is-a-service">What is a Service?</h3>
+<p>A <strong>Service</strong> contains <strong>business logic</strong>.
+It: - Uses repositories to access/modify data - Enforces business rules
+- Validates data before saving - Handles transactions - Orchestrates
+complex operations across multiple entities</p>
+<h3 id="services-in-your-project">Services in Your Project</h3>
+<h4 id="bookservice---business-logic-for-books">1.
+<strong>BookService</strong> - Business logic for Books</h4>
+<div class="sourceCode" id="cb14"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="at">@Service</span>                           <span class="co">// Spring component that handles business logic</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="at">@RequiredArgsConstructor</span>           <span class="co">// Lombok: constructor injection</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">class</span> BookService <span class="op">{</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">final</span> BookRepository bookRepository<span class="op">;</span>  <span class="co">// Dependency injection</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">// READ Operations</span></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="bu">List</span><span class="op">&lt;</span><span class="bu">Book</span><span class="op">&gt;</span> <span class="fu">getAllBooks</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Get all books from database</span></span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> bookRepository<span class="op">.</span><span class="fu">findAll</span><span class="op">();</span>  <span class="co">// SELECT * FROM books</span></span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> Optional<span class="op">&lt;</span><span class="bu">Book</span><span class="op">&gt;</span> <span class="fu">getBookById</span><span class="op">(</span><span class="bu">Long</span> id<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Get single book by ID</span></span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> bookRepository<span class="op">.</span><span class="fu">findById</span><span class="op">(</span>id<span class="op">);</span>  <span class="co">// SELECT * FROM books WHERE id = ?</span></span>
+<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="bu">List</span><span class="op">&lt;</span><span class="bu">Book</span><span class="op">&gt;</span> <span class="fu">getAvailableBooks</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb14-20"><a href="#cb14-20" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Get only books that can be borrowed</span></span>
+<span id="cb14-21"><a href="#cb14-21" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> bookRepository<span class="op">.</span><span class="fu">findByIsAvailable</span><span class="op">(</span><span class="kw">true</span><span class="op">);</span>  </span>
+<span id="cb14-22"><a href="#cb14-22" aria-hidden="true" tabindex="-1"></a>        <span class="co">// SELECT * FROM books WHERE is_available = true</span></span>
+<span id="cb14-23"><a href="#cb14-23" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb14-24"><a href="#cb14-24" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb14-25"><a href="#cb14-25" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="bu">List</span><span class="op">&lt;</span><span class="bu">Book</span><span class="op">&gt;</span> <span class="fu">searchBooks</span><span class="op">(</span><span class="bu">String</span> keyword<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb14-26"><a href="#cb14-26" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Search books by title or author (case-insensitive)</span></span>
+<span id="cb14-27"><a href="#cb14-27" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> bookRepository<span class="op">.</span><span class="fu">findByTitleContainingIgnoreCaseOrAuthorContainingIgnoreCase</span><span class="op">(</span></span>
+<span id="cb14-28"><a href="#cb14-28" aria-hidden="true" tabindex="-1"></a>            keyword<span class="op">,</span> keyword<span class="op">);</span></span>
+<span id="cb14-29"><a href="#cb14-29" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb14-30"><a href="#cb14-30" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb14-31"><a href="#cb14-31" aria-hidden="true" tabindex="-1"></a>    <span class="co">// WRITE Operations with @Transactional</span></span>
+<span id="cb14-32"><a href="#cb14-32" aria-hidden="true" tabindex="-1"></a>    <span class="co">// @Transactional = Auto commit on success, rollback on error</span></span>
+<span id="cb14-33"><a href="#cb14-33" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb14-34"><a href="#cb14-34" aria-hidden="true" tabindex="-1"></a>    <span class="at">@Transactional</span></span>
+<span id="cb14-35"><a href="#cb14-35" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="bu">Book</span> <span class="fu">saveBook</span><span class="op">(</span><span class="bu">Book</span> book<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb14-36"><a href="#cb14-36" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Save new book to database</span></span>
+<span id="cb14-37"><a href="#cb14-37" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Validation: Database constraints ensure:</span></span>
+<span id="cb14-38"><a href="#cb14-38" aria-hidden="true" tabindex="-1"></a>        <span class="co">// - title is not null</span></span>
+<span id="cb14-39"><a href="#cb14-39" aria-hidden="true" tabindex="-1"></a>        <span class="co">// - author is not null</span></span>
+<span id="cb14-40"><a href="#cb14-40" aria-hidden="true" tabindex="-1"></a>        <span class="co">// - isbn is unique</span></span>
+<span id="cb14-41"><a href="#cb14-41" aria-hidden="true" tabindex="-1"></a>        <span class="co">// - isbn is not null</span></span>
+<span id="cb14-42"><a href="#cb14-42" aria-hidden="true" tabindex="-1"></a>        <span class="co">// - genre is not null</span></span>
+<span id="cb14-43"><a href="#cb14-43" aria-hidden="true" tabindex="-1"></a>        <span class="co">// - quantity is not null</span></span>
+<span id="cb14-44"><a href="#cb14-44" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb14-45"><a href="#cb14-45" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> bookRepository<span class="op">.</span><span class="fu">save</span><span class="op">(</span>book<span class="op">);</span>  </span>
+<span id="cb14-46"><a href="#cb14-46" aria-hidden="true" tabindex="-1"></a>        <span class="co">// INSERT INTO books (...) VALUES (...)</span></span>
+<span id="cb14-47"><a href="#cb14-47" aria-hidden="true" tabindex="-1"></a>        <span class="co">// OR UPDATE books SET ... WHERE id = ?</span></span>
+<span id="cb14-48"><a href="#cb14-48" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb14-49"><a href="#cb14-49" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb14-50"><a href="#cb14-50" aria-hidden="true" tabindex="-1"></a>    <span class="at">@Transactional</span></span>
+<span id="cb14-51"><a href="#cb14-51" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="bu">Book</span> <span class="fu">updateBook</span><span class="op">(</span><span class="bu">Long</span> id<span class="op">,</span> <span class="bu">Book</span> bookDetails<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb14-52"><a href="#cb14-52" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Update existing book</span></span>
+<span id="cb14-53"><a href="#cb14-53" aria-hidden="true" tabindex="-1"></a>        <span class="bu">Book</span> book <span class="op">=</span> bookRepository<span class="op">.</span><span class="fu">findById</span><span class="op">(</span>id<span class="op">)</span></span>
+<span id="cb14-54"><a href="#cb14-54" aria-hidden="true" tabindex="-1"></a>            <span class="op">.</span><span class="fu">orElseThrow</span><span class="op">(()</span> <span class="op">-&gt;</span> <span class="kw">new</span> <span class="bu">RuntimeException</span><span class="op">(</span><span class="st">&quot;Book not found&quot;</span><span class="op">));</span></span>
+<span id="cb14-55"><a href="#cb14-55" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb14-56"><a href="#cb14-56" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Update all fields</span></span>
+<span id="cb14-57"><a href="#cb14-57" aria-hidden="true" tabindex="-1"></a>        book<span class="op">.</span><span class="fu">setTitle</span><span class="op">(</span>bookDetails<span class="op">.</span><span class="fu">getTitle</span><span class="op">());</span></span>
+<span id="cb14-58"><a href="#cb14-58" aria-hidden="true" tabindex="-1"></a>        book<span class="op">.</span><span class="fu">setAuthor</span><span class="op">(</span>bookDetails<span class="op">.</span><span class="fu">getAuthor</span><span class="op">());</span></span>
+<span id="cb14-59"><a href="#cb14-59" aria-hidden="true" tabindex="-1"></a>        book<span class="op">.</span><span class="fu">setIsbn</span><span class="op">(</span>bookDetails<span class="op">.</span><span class="fu">getIsbn</span><span class="op">());</span></span>
+<span id="cb14-60"><a href="#cb14-60" aria-hidden="true" tabindex="-1"></a>        book<span class="op">.</span><span class="fu">setGenre</span><span class="op">(</span>bookDetails<span class="op">.</span><span class="fu">getGenre</span><span class="op">());</span></span>
+<span id="cb14-61"><a href="#cb14-61" aria-hidden="true" tabindex="-1"></a>        book<span class="op">.</span><span class="fu">setQuantity</span><span class="op">(</span>bookDetails<span class="op">.</span><span class="fu">getQuantity</span><span class="op">());</span></span>
+<span id="cb14-62"><a href="#cb14-62" aria-hidden="true" tabindex="-1"></a>        book<span class="op">.</span><span class="fu">setIsAvailable</span><span class="op">(</span>bookDetails<span class="op">.</span><span class="fu">getIsAvailable</span><span class="op">());</span></span>
+<span id="cb14-63"><a href="#cb14-63" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb14-64"><a href="#cb14-64" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> bookRepository<span class="op">.</span><span class="fu">save</span><span class="op">(</span>book<span class="op">);</span></span>
+<span id="cb14-65"><a href="#cb14-65" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb14-66"><a href="#cb14-66" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb14-67"><a href="#cb14-67" aria-hidden="true" tabindex="-1"></a>    <span class="at">@Transactional</span></span>
+<span id="cb14-68"><a href="#cb14-68" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">void</span> <span class="fu">deleteBook</span><span class="op">(</span><span class="bu">Long</span> id<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb14-69"><a href="#cb14-69" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Delete book from database</span></span>
+<span id="cb14-70"><a href="#cb14-70" aria-hidden="true" tabindex="-1"></a>        bookRepository<span class="op">.</span><span class="fu">deleteById</span><span class="op">(</span>id<span class="op">);</span></span>
+<span id="cb14-71"><a href="#cb14-71" aria-hidden="true" tabindex="-1"></a>        <span class="co">// DELETE FROM books WHERE id = ?</span></span>
+<span id="cb14-72"><a href="#cb14-72" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb14-73"><a href="#cb14-73" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb14-74"><a href="#cb14-74" aria-hidden="true" tabindex="-1"></a>    <span class="at">@Transactional</span></span>
+<span id="cb14-75"><a href="#cb14-75" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">void</span> <span class="fu">updateAvailability</span><span class="op">(</span><span class="bu">Long</span> bookId<span class="op">,</span> <span class="dt">boolean</span> isAvailable<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb14-76"><a href="#cb14-76" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Update if book is available (used by BorrowService)</span></span>
+<span id="cb14-77"><a href="#cb14-77" aria-hidden="true" tabindex="-1"></a>        <span class="bu">Book</span> book <span class="op">=</span> bookRepository<span class="op">.</span><span class="fu">findById</span><span class="op">(</span>bookId<span class="op">)</span></span>
+<span id="cb14-78"><a href="#cb14-78" aria-hidden="true" tabindex="-1"></a>            <span class="op">.</span><span class="fu">orElseThrow</span><span class="op">(()</span> <span class="op">-&gt;</span> <span class="kw">new</span> <span class="bu">RuntimeException</span><span class="op">(</span><span class="st">&quot;Book not found&quot;</span><span class="op">));</span></span>
+<span id="cb14-79"><a href="#cb14-79" aria-hidden="true" tabindex="-1"></a>        book<span class="op">.</span><span class="fu">setIsAvailable</span><span class="op">(</span>isAvailable<span class="op">);</span></span>
+<span id="cb14-80"><a href="#cb14-80" aria-hidden="true" tabindex="-1"></a>        bookRepository<span class="op">.</span><span class="fu">save</span><span class="op">(</span>book<span class="op">);</span></span>
+<span id="cb14-81"><a href="#cb14-81" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb14-82"><a href="#cb14-82" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<hr />
+<h4 id="borrowservice---business-logic-for-borrowing">2.
+<strong>BorrowService</strong> - Business logic for Borrowing</h4>
+<div class="sourceCode" id="cb15"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="at">@Service</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="at">@RequiredArgsConstructor</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">class</span> BorrowService <span class="op">{</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">final</span> BorrowRepository borrowRepository<span class="op">;</span></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">final</span> BookService bookService<span class="op">;</span>  <span class="co">// Dependency injection</span></span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">@Transactional</span></span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> BorrowRecord <span class="fu">borrowBook</span><span class="op">(</span>User user<span class="op">,</span> <span class="bu">Book</span> book<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Business logic: Check if book is available</span></span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(!</span>book<span class="op">.</span><span class="fu">getIsAvailable</span><span class="op">())</span> <span class="op">{</span></span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a>            <span class="cf">throw</span> <span class="kw">new</span> <span class="bu">RuntimeException</span><span class="op">(</span><span class="st">&quot;Book is not available&quot;</span><span class="op">);</span></span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Mark book as unavailable</span></span>
+<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a>        book<span class="op">.</span><span class="fu">setIsAvailable</span><span class="op">(</span><span class="kw">false</span><span class="op">);</span></span>
+<span id="cb15-17"><a href="#cb15-17" aria-hidden="true" tabindex="-1"></a>        bookService<span class="op">.</span><span class="fu">saveBook</span><span class="op">(</span>book<span class="op">);</span>  <span class="co">// Update in database</span></span>
+<span id="cb15-18"><a href="#cb15-18" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb15-19"><a href="#cb15-19" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Create borrow record</span></span>
+<span id="cb15-20"><a href="#cb15-20" aria-hidden="true" tabindex="-1"></a>        LocalDate borrowDate <span class="op">=</span> LocalDate<span class="op">.</span><span class="fu">now</span><span class="op">();</span></span>
+<span id="cb15-21"><a href="#cb15-21" aria-hidden="true" tabindex="-1"></a>        LocalDate returnDeadline <span class="op">=</span> borrowDate<span class="op">.</span><span class="fu">plusDays</span><span class="op">(</span><span class="dv">14</span><span class="op">);</span>  <span class="co">// 14-day loan period</span></span>
+<span id="cb15-22"><a href="#cb15-22" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb15-23"><a href="#cb15-23" aria-hidden="true" tabindex="-1"></a>        BorrowRecord borrowRecord <span class="op">=</span> <span class="kw">new</span> <span class="fu">BorrowRecord</span><span class="op">(</span></span>
+<span id="cb15-24"><a href="#cb15-24" aria-hidden="true" tabindex="-1"></a>            user<span class="op">,</span></span>
+<span id="cb15-25"><a href="#cb15-25" aria-hidden="true" tabindex="-1"></a>            book<span class="op">,</span></span>
+<span id="cb15-26"><a href="#cb15-26" aria-hidden="true" tabindex="-1"></a>            borrowDate<span class="op">,</span></span>
+<span id="cb15-27"><a href="#cb15-27" aria-hidden="true" tabindex="-1"></a>            returnDeadline</span>
+<span id="cb15-28"><a href="#cb15-28" aria-hidden="true" tabindex="-1"></a>        <span class="op">);</span></span>
+<span id="cb15-29"><a href="#cb15-29" aria-hidden="true" tabindex="-1"></a>        borrowRecord<span class="op">.</span><span class="fu">setStatus</span><span class="op">(</span><span class="st">&quot;BORROWED&quot;</span><span class="op">);</span></span>
+<span id="cb15-30"><a href="#cb15-30" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb15-31"><a href="#cb15-31" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> borrowRepository<span class="op">.</span><span class="fu">save</span><span class="op">(</span>borrowRecord<span class="op">);</span></span>
+<span id="cb15-32"><a href="#cb15-32" aria-hidden="true" tabindex="-1"></a>        <span class="co">// INSERT INTO borrow_records (...) VALUES (...)</span></span>
+<span id="cb15-33"><a href="#cb15-33" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb15-34"><a href="#cb15-34" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb15-35"><a href="#cb15-35" aria-hidden="true" tabindex="-1"></a>    <span class="at">@Transactional</span></span>
+<span id="cb15-36"><a href="#cb15-36" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> BorrowRecord <span class="fu">returnBook</span><span class="op">(</span><span class="bu">Long</span> borrowRecordId<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb15-37"><a href="#cb15-37" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Fetch the borrow record</span></span>
+<span id="cb15-38"><a href="#cb15-38" aria-hidden="true" tabindex="-1"></a>        BorrowRecord <span class="kw">record</span> <span class="op">=</span> borrowRepository<span class="op">.</span><span class="fu">findById</span><span class="op">(</span>borrowRecordId<span class="op">)</span></span>
+<span id="cb15-39"><a href="#cb15-39" aria-hidden="true" tabindex="-1"></a>            <span class="op">.</span><span class="fu">orElseThrow</span><span class="op">(()</span> <span class="op">-&gt;</span> <span class="kw">new</span> <span class="bu">RuntimeException</span><span class="op">(</span><span class="st">&quot;Borrow record not found&quot;</span><span class="op">));</span></span>
+<span id="cb15-40"><a href="#cb15-40" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb15-41"><a href="#cb15-41" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Set actual return date</span></span>
+<span id="cb15-42"><a href="#cb15-42" aria-hidden="true" tabindex="-1"></a>        <span class="kw">record</span><span class="op">.</span><span class="fu">setActualReturnDate</span><span class="op">(</span>LocalDate<span class="op">.</span><span class="fu">now</span><span class="op">());</span></span>
+<span id="cb15-43"><a href="#cb15-43" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb15-44"><a href="#cb15-44" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Check if returned late (after deadline)</span></span>
+<span id="cb15-45"><a href="#cb15-45" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>LocalDate<span class="op">.</span><span class="fu">now</span><span class="op">().</span><span class="fu">isAfter</span><span class="op">(</span><span class="kw">record</span><span class="op">.</span><span class="fu">getReturnDeadline</span><span class="op">()))</span> <span class="op">{</span></span>
+<span id="cb15-46"><a href="#cb15-46" aria-hidden="true" tabindex="-1"></a>            <span class="kw">record</span><span class="op">.</span><span class="fu">setStatus</span><span class="op">(</span><span class="st">&quot;RETURNED_LATE&quot;</span><span class="op">);</span></span>
+<span id="cb15-47"><a href="#cb15-47" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span> <span class="cf">else</span> <span class="op">{</span></span>
+<span id="cb15-48"><a href="#cb15-48" aria-hidden="true" tabindex="-1"></a>            <span class="kw">record</span><span class="op">.</span><span class="fu">setStatus</span><span class="op">(</span><span class="st">&quot;RETURNED&quot;</span><span class="op">);</span></span>
+<span id="cb15-49"><a href="#cb15-49" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb15-50"><a href="#cb15-50" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb15-51"><a href="#cb15-51" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Make book available again</span></span>
+<span id="cb15-52"><a href="#cb15-52" aria-hidden="true" tabindex="-1"></a>        <span class="bu">Book</span> book <span class="op">=</span> <span class="kw">record</span><span class="op">.</span><span class="fu">getBook</span><span class="op">();</span></span>
+<span id="cb15-53"><a href="#cb15-53" aria-hidden="true" tabindex="-1"></a>        book<span class="op">.</span><span class="fu">setIsAvailable</span><span class="op">(</span><span class="kw">true</span><span class="op">);</span></span>
+<span id="cb15-54"><a href="#cb15-54" aria-hidden="true" tabindex="-1"></a>        bookService<span class="op">.</span><span class="fu">saveBook</span><span class="op">(</span>book<span class="op">);</span></span>
+<span id="cb15-55"><a href="#cb15-55" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb15-56"><a href="#cb15-56" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> borrowRepository<span class="op">.</span><span class="fu">save</span><span class="op">(</span><span class="kw">record</span><span class="op">);</span></span>
+<span id="cb15-57"><a href="#cb15-57" aria-hidden="true" tabindex="-1"></a>        <span class="co">// UPDATE borrow_records SET ... WHERE id = ?</span></span>
+<span id="cb15-58"><a href="#cb15-58" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb15-59"><a href="#cb15-59" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb15-60"><a href="#cb15-60" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="bu">List</span><span class="op">&lt;</span>BorrowRecord<span class="op">&gt;</span> <span class="fu">getUserBorrowHistory</span><span class="op">(</span>User user<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb15-61"><a href="#cb15-61" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Get all borrow records for a user (sorted by date)</span></span>
+<span id="cb15-62"><a href="#cb15-62" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> borrowRepository<span class="op">.</span><span class="fu">findByUserOrderByBorrowDateDesc</span><span class="op">(</span>user<span class="op">);</span></span>
+<span id="cb15-63"><a href="#cb15-63" aria-hidden="true" tabindex="-1"></a>        <span class="co">// SELECT * FROM borrow_records </span></span>
+<span id="cb15-64"><a href="#cb15-64" aria-hidden="true" tabindex="-1"></a>        <span class="co">// WHERE user_id = ? </span></span>
+<span id="cb15-65"><a href="#cb15-65" aria-hidden="true" tabindex="-1"></a>        <span class="co">// ORDER BY borrow_date DESC</span></span>
+<span id="cb15-66"><a href="#cb15-66" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb15-67"><a href="#cb15-67" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb15-68"><a href="#cb15-68" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="bu">List</span><span class="op">&lt;</span>BorrowRecord<span class="op">&gt;</span> <span class="fu">getActiveBorrows</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb15-69"><a href="#cb15-69" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Get all books currently borrowed (not returned)</span></span>
+<span id="cb15-70"><a href="#cb15-70" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> borrowRepository<span class="op">.</span><span class="fu">findByStatus</span><span class="op">(</span><span class="st">&quot;BORROWED&quot;</span><span class="op">);</span></span>
+<span id="cb15-71"><a href="#cb15-71" aria-hidden="true" tabindex="-1"></a>        <span class="co">// SELECT * FROM borrow_records WHERE status = &#39;BORROWED&#39;</span></span>
+<span id="cb15-72"><a href="#cb15-72" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb15-73"><a href="#cb15-73" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb15-74"><a href="#cb15-74" aria-hidden="true" tabindex="-1"></a>    <span class="at">@Transactional</span></span>
+<span id="cb15-75"><a href="#cb15-75" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">void</span> <span class="fu">updateOverdueRecords</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb15-76"><a href="#cb15-76" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Business logic: Check if any borrowed books are overdue</span></span>
+<span id="cb15-77"><a href="#cb15-77" aria-hidden="true" tabindex="-1"></a>        <span class="bu">List</span><span class="op">&lt;</span>BorrowRecord<span class="op">&gt;</span> activeRecords <span class="op">=</span> borrowRepository<span class="op">.</span><span class="fu">findByStatus</span><span class="op">(</span><span class="st">&quot;BORROWED&quot;</span><span class="op">);</span></span>
+<span id="cb15-78"><a href="#cb15-78" aria-hidden="true" tabindex="-1"></a>        LocalDate today <span class="op">=</span> LocalDate<span class="op">.</span><span class="fu">now</span><span class="op">();</span></span>
+<span id="cb15-79"><a href="#cb15-79" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb15-80"><a href="#cb15-80" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> <span class="op">(</span>BorrowRecord <span class="kw">record</span> <span class="op">:</span> activeRecords<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb15-81"><a href="#cb15-81" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="op">(</span>today<span class="op">.</span><span class="fu">isAfter</span><span class="op">(</span><span class="kw">record</span><span class="op">.</span><span class="fu">getReturnDeadline</span><span class="op">()))</span> <span class="op">{</span></span>
+<span id="cb15-82"><a href="#cb15-82" aria-hidden="true" tabindex="-1"></a>                <span class="kw">record</span><span class="op">.</span><span class="fu">setStatus</span><span class="op">(</span><span class="st">&quot;OVERDUE&quot;</span><span class="op">);</span>  <span class="co">// Mark as overdue if past deadline</span></span>
+<span id="cb15-83"><a href="#cb15-83" aria-hidden="true" tabindex="-1"></a>                borrowRepository<span class="op">.</span><span class="fu">save</span><span class="op">(</span><span class="kw">record</span><span class="op">);</span></span>
+<span id="cb15-84"><a href="#cb15-84" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb15-85"><a href="#cb15-85" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb15-86"><a href="#cb15-86" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb15-87"><a href="#cb15-87" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<hr />
+<h4 id="customuserdetailsservice---spring-security-integration">3.
+<strong>CustomUserDetailsService</strong> - Spring Security
+Integration</h4>
+<div class="sourceCode" id="cb16"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="at">@Service</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="at">@RequiredArgsConstructor</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">class</span> CustomUserDetailsService <span class="kw">implements</span> UserDetailsService <span class="op">{</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">final</span> UserRepository userRepository<span class="op">;</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">@Override</span></span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> UserDetails <span class="fu">loadUserByUsername</span><span class="op">(</span><span class="bu">String</span> username<span class="op">)</span> </span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>        <span class="kw">throws</span> UsernameNotFoundException <span class="op">{</span></span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Fetch user from database</span></span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>        User user <span class="op">=</span> userRepository<span class="op">.</span><span class="fu">findByUsername</span><span class="op">(</span>username<span class="op">)</span></span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>            <span class="op">.</span><span class="fu">orElseThrow</span><span class="op">(()</span> <span class="op">-&gt;</span> <span class="kw">new</span> <span class="fu">UsernameNotFoundException</span><span class="op">(</span></span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a>                <span class="st">&quot;User not found: &quot;</span> <span class="op">+</span> username<span class="op">));</span></span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Convert roles to authorities (Spring Security format)</span></span>
+<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a>        <span class="bu">Set</span><span class="op">&lt;</span>GrantedAuthority<span class="op">&gt;</span> authorities <span class="op">=</span> user<span class="op">.</span><span class="fu">getRoles</span><span class="op">().</span><span class="fu">stream</span><span class="op">()</span></span>
+<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a>            <span class="op">.</span><span class="fu">map</span><span class="op">(</span>role <span class="op">-&gt;</span> <span class="kw">new</span> <span class="fu">SimpleGrantedAuthority</span><span class="op">(</span><span class="st">&quot;ROLE_&quot;</span> <span class="op">+</span> role<span class="op">.</span><span class="fu">getName</span><span class="op">()))</span></span>
+<span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a>            <span class="op">.</span><span class="fu">collect</span><span class="op">(</span>Collectors<span class="op">.</span><span class="fu">toSet</span><span class="op">());</span></span>
+<span id="cb16-20"><a href="#cb16-20" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Example:</span></span>
+<span id="cb16-21"><a href="#cb16-21" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Role &quot;ADMIN&quot; → Authority &quot;ROLE_ADMIN&quot;</span></span>
+<span id="cb16-22"><a href="#cb16-22" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Role &quot;USER&quot; → Authority &quot;ROLE_USER&quot;</span></span>
+<span id="cb16-23"><a href="#cb16-23" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb16-24"><a href="#cb16-24" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Return Spring Security UserDetails object</span></span>
+<span id="cb16-25"><a href="#cb16-25" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> org<span class="op">.</span><span class="fu">springframework</span><span class="op">.</span><span class="fu">security</span><span class="op">.</span><span class="fu">core</span><span class="op">.</span><span class="fu">userdetails</span><span class="op">.</span><span class="fu">User</span><span class="op">.</span><span class="fu">builder</span><span class="op">()</span></span>
+<span id="cb16-26"><a href="#cb16-26" aria-hidden="true" tabindex="-1"></a>            <span class="op">.</span><span class="fu">username</span><span class="op">(</span>user<span class="op">.</span><span class="fu">getUsername</span><span class="op">())</span></span>
+<span id="cb16-27"><a href="#cb16-27" aria-hidden="true" tabindex="-1"></a>            <span class="op">.</span><span class="fu">password</span><span class="op">(</span>user<span class="op">.</span><span class="fu">getPassword</span><span class="op">())</span></span>
+<span id="cb16-28"><a href="#cb16-28" aria-hidden="true" tabindex="-1"></a>            <span class="op">.</span><span class="fu">authorities</span><span class="op">(</span>authorities<span class="op">)</span></span>
+<span id="cb16-29"><a href="#cb16-29" aria-hidden="true" tabindex="-1"></a>            <span class="op">.</span><span class="fu">build</span><span class="op">();</span></span>
+<span id="cb16-30"><a href="#cb16-30" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb16-31"><a href="#cb16-31" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<hr />
+<h2 id="part-4-how-they-work-together">PART 4: HOW THEY WORK
+TOGETHER</h2>
+<h3 id="example-flow-user-borrows-a-book">Example Flow: User Borrows a
+Book</h3>
+<pre><code>Step 1: User clicks &quot;Borrow Book&quot; button in web interface
+        ↓
+Step 2: HTTP Request reaches BorrowController
+        BorrowController.borrowBook(bookId, userId)
+        ↓
+Step 3: Controller calls BorrowService
+        BorrowService.borrowBook(user, book)
+        ↓
+Step 4: Service validates business logic
+        - Check if book.isAvailable == true
+        - If false, throw error
+        ↓
+Step 5: Service updates Book entity via BookService
+        BorrowService calls BookService.saveBook(book)
+        → BookService calls BookRepository.save(book)
+        → BookRepository executes SQL: UPDATE books SET is_available = false WHERE id = ?
+        → Book updated in database
+        ↓
+Step 6: Service creates BorrowRecord entity
+        BorrowRecord {
+            user: user,
+            book: book,
+            borrowDate: 2024-01-15,
+            returnDeadline: 2024-01-29 (14 days later),
+            status: &quot;BORROWED&quot;
+        }
+        ↓
+Step 7: Service saves BorrowRecord via BorrowRepository
+        BorrowService calls BorrowRepository.save(borrowRecord)
+        → BorrowRepository executes SQL:
+            INSERT INTO borrow_records (user_id, book_id, borrow_date, return_deadline, status)
+            VALUES (?, ?, &#39;2024-01-15&#39;, &#39;2024-01-29&#39;, &#39;BORROWED&#39;)
+        → Record saved in database
+        ↓
+Step 8: Service returns BorrowRecord to Controller
+        ↓
+Step 9: Controller returns response to user
+        &quot;Book borrowed successfully! Return by 2024-01-29&quot;</code></pre>
+<h3 id="example-flow-search-books">Example Flow: Search Books</h3>
+<pre><code>User enters &quot;Java&quot; in search box
+        ↓
+BookController.searchBooks(&quot;Java&quot;)
+        ↓
+BookService.searchBooks(&quot;Java&quot;)
+        ↓
+BookRepository.findByTitleContainingIgnoreCaseOrAuthorContainingIgnoreCase(&quot;Java&quot;, &quot;Java&quot;)
+        ↓
+Generated SQL: 
+SELECT * FROM books 
+WHERE LOWER(title) LIKE &#39;%java%&#39; 
+OR LOWER(author) LIKE &#39;%java%&#39;
+        ↓
+Results: [Book 1: Java Programming, Book 2: Learn Java, ...]
+        ↓
+Return to view, display books</code></pre>
+<hr />
+<h2 id="part-5-validation-in-the-project">PART 5: VALIDATION IN THE
+PROJECT</h2>
+<h3 id="database-constraints-enforced-by-database">1. <strong>Database
+Constraints</strong> (Enforced by Database)</h3>
+<div class="sourceCode" id="cb19"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="co">// User Entity</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="at">@Column</span><span class="op">(</span>name <span class="op">=</span> <span class="st">&quot;username&quot;</span><span class="op">,</span> unique <span class="op">=</span> <span class="kw">true</span><span class="op">,</span> nullable <span class="op">=</span> <span class="kw">false</span><span class="op">)</span></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a><span class="co">// ✓ No two users can have same username</span></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a><span class="co">// ✓ Username is required</span></span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a><span class="at">@Column</span><span class="op">(</span>name <span class="op">=</span> <span class="st">&quot;email&quot;</span><span class="op">,</span> unique <span class="op">=</span> <span class="kw">true</span><span class="op">,</span> nullable <span class="op">=</span> <span class="kw">false</span><span class="op">)</span></span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a><span class="co">// ✓ No two users can have same email</span></span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a><span class="co">// ✓ Email is required</span></span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a><span class="co">// Book Entity</span></span>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a><span class="at">@Column</span><span class="op">(</span>unique <span class="op">=</span> <span class="kw">true</span><span class="op">,</span> nullable <span class="op">=</span> <span class="kw">false</span><span class="op">)</span></span>
+<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="bu">String</span> isbn<span class="op">;</span></span>
+<span id="cb19-13"><a href="#cb19-13" aria-hidden="true" tabindex="-1"></a><span class="co">// ✓ ISBN must be unique</span></span>
+<span id="cb19-14"><a href="#cb19-14" aria-hidden="true" tabindex="-1"></a><span class="co">// ✓ ISBN is required</span></span>
+<span id="cb19-15"><a href="#cb19-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-16"><a href="#cb19-16" aria-hidden="true" tabindex="-1"></a><span class="at">@Column</span><span class="op">(</span>nullable <span class="op">=</span> <span class="kw">false</span><span class="op">)</span></span>
+<span id="cb19-17"><a href="#cb19-17" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="bu">String</span> title<span class="op">;</span></span>
+<span id="cb19-18"><a href="#cb19-18" aria-hidden="true" tabindex="-1"></a><span class="co">// ✓ Title is required</span></span>
+<span id="cb19-19"><a href="#cb19-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-20"><a href="#cb19-20" aria-hidden="true" tabindex="-1"></a><span class="co">// BorrowRecord Entity</span></span>
+<span id="cb19-21"><a href="#cb19-21" aria-hidden="true" tabindex="-1"></a><span class="at">@JoinColumn</span><span class="op">(</span>name <span class="op">=</span> <span class="st">&quot;user_id&quot;</span><span class="op">,</span> nullable <span class="op">=</span> <span class="kw">false</span><span class="op">)</span></span>
+<span id="cb19-22"><a href="#cb19-22" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> User user<span class="op">;</span></span>
+<span id="cb19-23"><a href="#cb19-23" aria-hidden="true" tabindex="-1"></a><span class="co">// ✓ Borrow record must have a user</span></span>
+<span id="cb19-24"><a href="#cb19-24" aria-hidden="true" tabindex="-1"></a><span class="co">// ✓ Cannot delete user while borrowing</span></span>
+<span id="cb19-25"><a href="#cb19-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-26"><a href="#cb19-26" aria-hidden="true" tabindex="-1"></a><span class="at">@JoinColumn</span><span class="op">(</span>name <span class="op">=</span> <span class="st">&quot;book_id&quot;</span><span class="op">,</span> nullable <span class="op">=</span> <span class="kw">false</span><span class="op">)</span></span>
+<span id="cb19-27"><a href="#cb19-27" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="bu">Book</span> book<span class="op">;</span></span>
+<span id="cb19-28"><a href="#cb19-28" aria-hidden="true" tabindex="-1"></a><span class="co">// ✓ Borrow record must have a book</span></span></code></pre></div>
+<h3 id="business-logic-validation-enforced-by-service">2.
+<strong>Business Logic Validation</strong> (Enforced by Service)</h3>
+<div class="sourceCode" id="cb20"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co">// BorrowService.borrowBook()</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="op">(!</span>book<span class="op">.</span><span class="fu">getIsAvailable</span><span class="op">())</span> <span class="op">{</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">throw</span> <span class="kw">new</span> <span class="bu">RuntimeException</span><span class="op">(</span><span class="st">&quot;Book is not available&quot;</span><span class="op">);</span></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>    <span class="co">// ✓ Cannot borrow books that are already borrowed</span></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a><span class="co">// BorrowService.returnBook()</span></span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>BorrowRecord <span class="kw">record</span> <span class="op">=</span> borrowRepository<span class="op">.</span><span class="fu">findById</span><span class="op">(</span>borrowRecordId<span class="op">)</span></span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>    <span class="op">.</span><span class="fu">orElseThrow</span><span class="op">(()</span> <span class="op">-&gt;</span> <span class="kw">new</span> <span class="bu">RuntimeException</span><span class="op">(</span><span class="st">&quot;Borrow record not found&quot;</span><span class="op">));</span></span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a><span class="co">// ✓ Cannot return a non-existent borrow record</span></span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a><span class="co">// BookService.updateBook()</span></span>
+<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a><span class="bu">Book</span> book <span class="op">=</span> bookRepository<span class="op">.</span><span class="fu">findById</span><span class="op">(</span>id<span class="op">)</span></span>
+<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a>    <span class="op">.</span><span class="fu">orElseThrow</span><span class="op">(()</span> <span class="op">-&gt;</span> <span class="kw">new</span> <span class="bu">RuntimeException</span><span class="op">(</span><span class="st">&quot;Book not found&quot;</span><span class="op">));</span></span>
+<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a><span class="co">// ✓ Cannot update non-existent book</span></span></code></pre></div>
+<h3 id="transactional-integrity-transactional">3. <strong>Transactional
+Integrity</strong> (<span class="citation"
+data-cites="Transactional">@Transactional</span>)</h3>
+<div class="sourceCode" id="cb21"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="at">@Transactional</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> BorrowRecord <span class="fu">borrowBook</span><span class="op">(</span>User user<span class="op">,</span> <span class="bu">Book</span> book<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// If error occurs at any point:</span></span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>    <span class="co">// - Set book.isAvailable = false</span></span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">// - Create borrow record</span></span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>    <span class="co">// If either step fails:</span></span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">// - ROLLBACK: Undo both operations</span></span>
+<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>    <span class="co">// - Database remains consistent</span></span>
+<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb21-10"><a href="#cb21-10" aria-hidden="true" tabindex="-1"></a>    book<span class="op">.</span><span class="fu">setIsAvailable</span><span class="op">(</span><span class="kw">false</span><span class="op">);</span>      <span class="co">// Step 1</span></span>
+<span id="cb21-11"><a href="#cb21-11" aria-hidden="true" tabindex="-1"></a>    bookService<span class="op">.</span><span class="fu">saveBook</span><span class="op">(</span>book<span class="op">);</span></span>
+<span id="cb21-12"><a href="#cb21-12" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb21-13"><a href="#cb21-13" aria-hidden="true" tabindex="-1"></a>    BorrowRecord borrowRecord <span class="op">=</span> <span class="kw">new</span> <span class="fu">BorrowRecord</span><span class="op">(</span><span class="kw">...</span><span class="op">);</span>  <span class="co">// Step 2</span></span>
+<span id="cb21-14"><a href="#cb21-14" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> borrowRepository<span class="op">.</span><span class="fu">save</span><span class="op">(</span>borrowRecord<span class="op">);</span></span>
+<span id="cb21-15"><a href="#cb21-15" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb21-16"><a href="#cb21-16" aria-hidden="true" tabindex="-1"></a>    <span class="co">// If step 2 fails, step 1 is rolled back</span></span>
+<span id="cb21-17"><a href="#cb21-17" aria-hidden="true" tabindex="-1"></a>    <span class="co">// If both succeed, COMMIT changes</span></span>
+<span id="cb21-18"><a href="#cb21-18" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="authentication-authorization-spring-security">4.
+<strong>Authentication &amp; Authorization</strong> (Spring
+Security)</h3>
+<div class="sourceCode" id="cb22"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co">// CustomUserDetailsService loads user with roles</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> UserDetails <span class="fu">loadUserByUsername</span><span class="op">(</span><span class="bu">String</span> username<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>    User user <span class="op">=</span> userRepository<span class="op">.</span><span class="fu">findByUsername</span><span class="op">(</span>username<span class="op">)</span></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>        <span class="op">.</span><span class="fu">orElseThrow</span><span class="op">(()</span> <span class="op">-&gt;</span> <span class="kw">new</span> <span class="fu">UsernameNotFoundException</span><span class="op">(</span><span class="kw">...</span><span class="op">));</span></span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>    <span class="bu">Set</span><span class="op">&lt;</span>GrantedAuthority<span class="op">&gt;</span> authorities <span class="op">=</span> user<span class="op">.</span><span class="fu">getRoles</span><span class="op">().</span><span class="fu">stream</span><span class="op">()</span></span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>        <span class="op">.</span><span class="fu">map</span><span class="op">(</span>role <span class="op">-&gt;</span> <span class="kw">new</span> <span class="fu">SimpleGrantedAuthority</span><span class="op">(</span><span class="st">&quot;ROLE_&quot;</span> <span class="op">+</span> role<span class="op">.</span><span class="fu">getName</span><span class="op">()))</span></span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>        <span class="op">.</span><span class="fu">collect</span><span class="op">(</span>Collectors<span class="op">.</span><span class="fu">toSet</span><span class="op">());</span></span>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a>    <span class="co">// ✓ User cannot have roles they don&#39;t have in database</span></span>
+<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a>    <span class="co">// ✓ Authentication enforced by Spring Security</span></span>
+<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<hr />
+<h2 id="part-6-validation-summary-table">PART 6: VALIDATION SUMMARY
+TABLE</h2>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Validation Type</th>
+<th>Location</th>
+<th>How It Works</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>NOT NULL</strong></td>
+<td>Database</td>
+<td>Column has <code>nullable = false</code></td>
+<td><code>username</code> cannot be null</td>
+</tr>
+<tr class="even">
+<td><strong>UNIQUE</strong></td>
+<td>Database</td>
+<td>Column has <code>unique = true</code></td>
+<td>Two users can’t have same username</td>
+</tr>
+<tr class="odd">
+<td><strong>PRIMARY KEY</strong></td>
+<td>Database</td>
+<td><code>@Id</code> with auto-increment</td>
+<td>Each user has unique ID</td>
+</tr>
+<tr class="even">
+<td><strong>FOREIGN KEY</strong></td>
+<td>Database</td>
+<td><code>@JoinColumn</code> ensures reference exists</td>
+<td>Borrow record must reference valid user</td>
+</tr>
+<tr class="odd">
+<td><strong>Business Logic</strong></td>
+<td>Service</td>
+<td>Runtime checks in service methods</td>
+<td>Cannot borrow unavailable book</td>
+</tr>
+<tr class="even">
+<td><strong>Transaction</strong></td>
+<td>Service</td>
+<td><code>@Transactional</code> ensures ACID</td>
+<td>All-or-nothing operations</td>
+</tr>
+<tr class="odd">
+<td><strong>Security</strong></td>
+<td>Spring Security</td>
+<td>UserDetailsService validates auth</td>
+<td>User must be logged in</td>
+</tr>
+<tr class="even">
+<td><strong>Data Type</strong></td>
+<td>Java/Database</td>
+<td>Column types enforced</td>
+<td><code>quantity</code> is Integer, not String</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="part-7-dependency-injection-example">PART 7: DEPENDENCY
+INJECTION EXAMPLE</h2>
+<h3 id="how-services-get-repositories">How Services Get
+Repositories</h3>
+<div class="sourceCode" id="cb23"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="at">@Service</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a><span class="at">@RequiredArgsConstructor</span>                    <span class="co">// Lombok annotation</span></span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">class</span> BookService <span class="op">{</span></span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">final</span> BookRepository bookRepository<span class="op">;</span></span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Lombok generates constructor:</span></span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">// public BookService(BookRepository bookRepository) {</span></span>
+<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a>    <span class="co">//     this.bookRepository = bookRepository;</span></span>
+<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a>    <span class="co">// }</span></span>
+<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb23-11"><a href="#cb23-11" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Spring automatically:</span></span>
+<span id="cb23-12"><a href="#cb23-12" aria-hidden="true" tabindex="-1"></a>    <span class="co">// 1. Finds BookRepository interface</span></span>
+<span id="cb23-13"><a href="#cb23-13" aria-hidden="true" tabindex="-1"></a>    <span class="co">// 2. Creates proxy implementation via Spring Data JPA</span></span>
+<span id="cb23-14"><a href="#cb23-14" aria-hidden="true" tabindex="-1"></a>    <span class="co">// 3. Injects it via constructor</span></span>
+<span id="cb23-15"><a href="#cb23-15" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb23-16"><a href="#cb23-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-17"><a href="#cb23-17" aria-hidden="true" tabindex="-1"></a><span class="co">// At startup, Spring creates:</span></span>
+<span id="cb23-18"><a href="#cb23-18" aria-hidden="true" tabindex="-1"></a><span class="at">@Bean</span></span>
+<span id="cb23-19"><a href="#cb23-19" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> BookRepository <span class="fu">bookRepository</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb23-20"><a href="#cb23-20" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Automatically generated implementation</span></span>
+<span id="cb23-21"><a href="#cb23-21" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="kw">new</span> <span class="fu">BookRepositoryImpl</span><span class="op">();</span>  <span class="co">// (simplified)</span></span>
+<span id="cb23-22"><a href="#cb23-22" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb23-23"><a href="#cb23-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-24"><a href="#cb23-24" aria-hidden="true" tabindex="-1"></a><span class="co">// Then injects into BookService:</span></span>
+<span id="cb23-25"><a href="#cb23-25" aria-hidden="true" tabindex="-1"></a><span class="at">@Bean</span></span>
+<span id="cb23-26"><a href="#cb23-26" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> BookService <span class="fu">bookService</span><span class="op">(</span>BookRepository bookRepository<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb23-27"><a href="#cb23-27" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="kw">new</span> <span class="fu">BookService</span><span class="op">(</span>bookRepository<span class="op">);</span></span>
+<span id="cb23-28"><a href="#cb23-28" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<hr />
+<h2 id="part-8-complete-operation-example">PART 8: COMPLETE OPERATION
+EXAMPLE</h2>
+<h3 id="register-new-user-flow">Register New User Flow</h3>
+<pre><code>1. User fills registration form and submits
+   username: &quot;john_doe&quot;
+   password: &quot;password123&quot;
+   email: &quot;john@example.com&quot;
+   
+2. AuthController.register(User) receives request
+   
+3. Check if user exists:
+   UserRepository.existsByUsername(&quot;john_doe&quot;) → false (OK)
+   UserRepository.existsByEmail(&quot;john@example.com&quot;) → false (OK)
+   
+4. Create User entity:
+   User user = new User(&quot;john_doe&quot;, &quot;password123&quot;, &quot;John Doe&quot;, &quot;john@example.com&quot;)
+   
+5. Save to database via UserRepository:
+   UserRepository.save(user)
+   
+6. Database INSERT:
+   INSERT INTO users (username, password, full_name, email)
+   VALUES (&#39;john_doe&#39;, &#39;hashed_password_123&#39;, &#39;John Doe&#39;, &#39;john@example.com&#39;)
+   
+7. Assign default ROLE_USER:
+   RoleRepository.findByName(&quot;USER&quot;) → Role(id=2, name=&quot;USER&quot;)
+   User.getRoles().add(role)
+   UserRepository.save(user) → Updates user_roles junction table
+   
+8. Success: Redirect to login page</code></pre>
+<h3 id="login-flow">Login Flow</h3>
+<pre><code>1. User submits login form:
+   username: &quot;john_doe&quot;
+   password: &quot;password123&quot;
+   
+2. Spring Security calls CustomUserDetailsService:
+   loadUserByUsername(&quot;john_doe&quot;)
+   
+3. UserRepository.findByUsername(&quot;john_doe&quot;) → User object
+   
+4. Get roles: User.getRoles() → [Role(name=&quot;USER&quot;)]
+   
+5. Convert to authorities: &quot;ROLE_USER&quot;
+   
+6. Create Spring UserDetails:
+   username: &quot;john_doe&quot;
+   password: &quot;hashed_password_123&quot;
+   authorities: [ROLE_USER]
+   
+7. Spring Security compares passwords:
+   - User entered: &quot;password123&quot;
+   - Database has: &quot;hashed_password_123&quot;
+   - Compare hashes: Match ✓
+   
+8. Create session, redirect to home</code></pre>
+<hr />
+<h2 id="summary">Summary</h2>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Layer</th>
+<th>Responsibility</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Entity</strong></td>
+<td>Data structure &amp; mapping to tables</td>
+<td><code>User.java</code> ↔︎ <code>users</code> table</td>
+</tr>
+<tr class="even">
+<td><strong>Repository</strong></td>
+<td>CRUD operations &amp; database access</td>
+<td><code>UserRepository.findByUsername(...)</code></td>
+</tr>
+<tr class="odd">
+<td><strong>Service</strong></td>
+<td>Business logic &amp; validation</td>
+<td><code>BorrowService.borrowBook()</code> checks availability</td>
+</tr>
+<tr class="even">
+<td><strong>Together</strong></td>
+<td>Controller → Service → Repository → Database</td>
+<td>Complete data flow</td>
+</tr>
+</tbody>
+</table>
+<p>Each layer has a specific responsibility, and together they form a
+clean, maintainable architecture.</p>
