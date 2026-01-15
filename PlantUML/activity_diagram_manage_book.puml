@@ -1,0 +1,35 @@
+@startuml
+title Activity Diagram - Manage Books (Admin)
+
+start
+:Admin opens Book Management page;
+
+if (Admin logged in?) then (Yes)
+
+  :Choose an action;
+
+  if (Add book?) then (Yes)
+    :Fill in book form;
+    :Save book to database;
+    :Show updated book list;
+
+  else (No)
+    if (Edit book?) then (Yes)
+      :Select a book;
+      :Update book information;
+      :Save changes;
+      :Show updated book list;
+
+    else (No)
+      :Select a book;
+      :Delete book;
+      :Show updated book list;
+    endif
+  endif
+
+else (No)
+  :Redirect to Login page;
+endif
+
+stop
+@enduml

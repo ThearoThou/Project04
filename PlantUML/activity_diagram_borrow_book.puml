@@ -1,0 +1,24 @@
+@startuml
+title Activity Diagram - Borrow Book (User)
+
+start
+:Open Available Books page;
+
+if (User logged in?) then (Yes)
+  :Select a book to borrow;
+  :System checks availability;
+
+  if (Book available?) then (Yes)
+    :Create borrow record;
+    :Update book status/quantity;
+    :Show success message;
+  else (No)
+    :Show "Not available" message;
+  endif
+
+else (No)
+  :Redirect to Login page;
+endif
+
+stop
+@enduml

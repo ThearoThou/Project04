@@ -1,0 +1,67 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+skinparam usecase {
+  BackgroundColor #E8F0FE
+  BorderColor #3B6FD8
+  FontColor #000000
+}
+skinparam actor {
+  BackgroundColor #ff0000
+  BorderColor #ff0000
+  FontColor #000000
+}
+skinparam rectangle {
+  BorderColor #5500ff
+}
+
+actor "User" as U
+actor "Admin" as A
+
+rectangle "Library Management System - Use Case Diagram" {
+
+  rectangle "Authentication" {
+    (Register) as UC_Register 
+    (Login) as UC_Login
+    (Logout) as UC_Logout
+  }
+
+  rectangle "Book Management" {
+    (View Book List) as UC_ViewBooks
+    (Search Books) as UC_Search
+    (Add Book) as UC_AddBook
+    (Edit Book) as UC_EditBook
+    (Delete Book) as UC_DeleteBook
+  }
+
+  rectangle "Borrow Management" {
+    (View Available Books) as UC_Available
+    (Borrow Book) as UC_Borrow
+    (View Borrow History) as UC_UserHistory
+    (View Borrow List - Admin) as UC_AdminList
+  }
+}
+
+' User actions (based on your pages: login/register + books + available + history)
+U --> UC_Register
+U --> UC_Login
+U --> UC_Logout
+U --> UC_ViewBooks
+U --> UC_Search
+U --> UC_Available
+U --> UC_Borrow
+U --> UC_UserHistory
+
+' Admin actions (based on admin-list + CRUD management)
+A --> UC_Login
+A --> UC_Logout
+A --> UC_ViewBooks
+A --> UC_Search
+A --> UC_AddBook
+A --> UC_EditBook
+A --> UC_DeleteBook
+A --> UC_AdminList
+
+@enduml
