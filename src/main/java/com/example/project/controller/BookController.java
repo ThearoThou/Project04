@@ -1,12 +1,16 @@
 package com.example.project.controller;
 
+import com.example.project.dto.BookRequest;
 import com.example.project.entity.Book;
 import com.example.project.service.BookService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import jakarta.validation.Valid;
 
 @Controller
 @RequiredArgsConstructor
@@ -33,8 +37,19 @@ public class BookController {
     }
     
     @PostMapping("/admin/books")
-    public String createBook(@ModelAttribute Book book, RedirectAttributes redirectAttributes) {
+    public String createBook(@Valid @ModelAttribute BookRequest dto, 
+                            BindingResult bindingResult,
+                            RedirectAttributes redirectAttributes) {
+        if (bindingResult.hasErrors()) {
+            bindingResult.getAllErrors().forEach(error -> 
+                redirectAttributes.addFlashAttribute("error", error.getDefaultMessage())
+            );
+            return "redirect:/admin/books/new";
+        }
+        
         try {
+            Book book = new Book(dto.getTitle(), dto.getAuthor(), 
+                                dto.getIsbn(), dto.getGenre(), dto.getQuantity());
             bookService.saveBook(book);
             redirectAttributes.addFlashAttribute("success", "Book added successfully!");
         } catch (Exception e) {
@@ -57,9 +72,20 @@ public class BookController {
     }
     
     @PostMapping("/admin/books/{id}")
-    public String updateBook(@PathVariable Long id, @ModelAttribute Book book, 
+    public String updateBook(@PathVariable Long id, 
+                            @Valid @ModelAttribute BookRequest dto,
+                            BindingResult bindingResult,
                             RedirectAttributes redirectAttributes) {
+        if (bindingResult.hasErrors()) {
+            bindingResult.getAllErrors().forEach(error -> 
+                redirectAttributes.addFlashAttribute("error", error.getDefaultMessage())
+            );
+            return "redirect:/admin/books/edit/" + id;
+        }
+        
         try {
+            Book book = new Book(dto.getTitle(), dto.getAuthor(), 
+                                dto.getIsbn(), dto.getGenre(), dto.getQuantity());
             bookService.updateBook(id, book);
             redirectAttributes.addFlashAttribute("success", "Book updated successfully!");
         } catch (Exception e) {
@@ -88,5 +114,22 @@ public class BookController {
         }
         model.addAttribute("keyword", keyword);
         return "books/search";
+    }
+    
+    @PostMapping("/api/admin/books")
+    public ResponseEntity<?> createBookApi(@Valid @RequestBody BookRequest dto,BindingResult bindingResult) {
+        if (bindingResult.hasErrors()) {
+            String error = bindingResult.getAllErrors().get(0).getDefaultMessage();
+            return ResponseEntity.badRequest().body(error);
+        }
+        
+        try {
+            Book book = new Book(dto.getTitle(), dto.getAuthor(), 
+                                dto.getIsbn(), dto.getGenre(), dto.getQuantity());
+            bookService.saveBook(book);
+            return ResponseEntity.ok("Book added successfully!");
+        } catch (Exception e) {
+            return ResponseEntity.status(400).body("Error adding book: " + e.getMessage());
+        }
     }
 }
